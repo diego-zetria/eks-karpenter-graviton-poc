@@ -157,7 +157,7 @@ This document presents the cloud architecture for Innovate Inc.'s web applicatio
 | Aspect | Configuration | Rationale |
 |--------|--------------|-----------|
 | **Service** | Amazon EKS (managed) | Reduces operational overhead, automatic control plane updates |
-| **Version** | Latest stable (1.33) | Security patches, latest features |
+| **Version** | Latest stable (1.35) | Security patches, latest features, in-place pod resource updates |
 | **Node scaling** | Karpenter | Right-sized nodes, Spot + Graviton support, faster than Cluster Autoscaler |
 | **Regions** | Single region (us-east-1) initially | Cost efficiency; multi-region when traffic justifies it |
 | **AZs** | 3 availability zones | High availability |
