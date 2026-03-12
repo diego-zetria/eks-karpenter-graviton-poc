@@ -46,7 +46,7 @@ Terraform code that deploys a production-ready Amazon EKS cluster with [Karpente
 | **VPC** | 3 AZs, public + private subnets, single NAT Gateway |
 | **EKS Cluster** | Kubernetes 1.33, managed control plane |
 | **System Node Group** | Graviton `m7g.medium` (On-Demand) — runs Karpenter controller |
-| **Karpenter** | v1.1.1 via Helm, Pod Identity auth, SQS interruption queue |
+| **Karpenter** | v1.5.0 via Helm, Pod Identity auth, SQS interruption queue |
 | **NodePool** | x86 + ARM64, Spot + On-Demand, 6th gen+ instances (c/m/r families) |
 | **EC2NodeClass** | Amazon Linux 2023 AMI, auto-discovers subnets and security groups |
 
