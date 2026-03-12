@@ -10,7 +10,7 @@ module "eks" {
   subnet_ids = module.vpc.private_subnets
 
   # Cluster access
-  endpoint_public_access                  = true
+  endpoint_public_access                   = true
   enable_cluster_creator_admin_permissions = true
 
   # EKS Addons
