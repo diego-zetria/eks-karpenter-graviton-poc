@@ -45,11 +45,13 @@ module "eks" {
         "karpenter.sh/controller" = "true"
       }
 
-      taints = [{
-        key    = "CriticalAddonsOnly"
-        value  = "true"
-        effect = "NoSchedule"
-      }]
+      taints = {
+        karpenter = {
+          key    = "CriticalAddonsOnly"
+          value  = "true"
+          effect = "NO_SCHEDULE"
+        }
+      }
     }
   }
 

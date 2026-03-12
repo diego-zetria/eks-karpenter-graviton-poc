@@ -10,7 +10,7 @@ output "cluster_endpoint" {
 
 output "kubernetes_version" {
   description = "EKS cluster Kubernetes version"
-  value       = module.eks.kubernetes_version
+  value       = module.eks.cluster_version
 }
 
 output "configure_kubectl" {

@@ -4,8 +4,7 @@ module "karpenter" {
 
   cluster_name = module.eks.cluster_name
 
-  # Enable Pod Identity for Karpenter (recommended over IRSA)
-  enable_pod_identity             = true
+  # Pod Identity association for Karpenter (default in v21, replaces IRSA)
   create_pod_identity_association = true
 
   # Node IAM role for instances launched by Karpenter
