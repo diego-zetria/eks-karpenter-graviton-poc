@@ -1,0 +1,12 @@
+# terraform.tfvars.example
+# Copy this file to terraform.tfvars and adjust values as needed.
+
+region             = "us-east-1"
+cluster_name       = "opsfleet-eks"
+kubernetes_version = "1.33"
+vpc_cidr           = "10.0.0.0/16"
+
+tags = {
+  Project   = "opsfleet-tech-assignment"
+  ManagedBy = "terraform"
+}
