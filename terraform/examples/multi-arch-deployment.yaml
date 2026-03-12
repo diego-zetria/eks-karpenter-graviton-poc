@@ -1,0 +1,28 @@
+# Multi-architecture deployment — no architecture constraint
+# Karpenter picks the most cost-effective option (typically Spot Graviton).
+# Usage: kubectl apply -f examples/multi-arch-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: multi-arch-demo
+  labels:
+    app: multi-arch-demo
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: multi-arch-demo
+  template:
+    metadata:
+      labels:
+        app: multi-arch-demo
+    spec:
+      containers:
+        - name: nginx
+          image: public.ecr.aws/nginx/nginx:latest
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 80

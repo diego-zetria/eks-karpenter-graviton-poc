@@ -1,0 +1,30 @@
+# Deploy on x86 (AMD64) instances
+# Karpenter will automatically provision an x86 node if none exists.
+# Usage: kubectl apply -f examples/x86-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: x86-demo
+  labels:
+    app: x86-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: x86-demo
+  template:
+    metadata:
+      labels:
+        app: x86-demo
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: amd64
+      containers:
+        - name: nginx
+          image: public.ecr.aws/nginx/nginx:latest
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 80

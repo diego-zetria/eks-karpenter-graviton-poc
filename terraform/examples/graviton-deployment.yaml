@@ -1,0 +1,30 @@
+# Deploy on Graviton (ARM64) instances
+# Karpenter will automatically provision a Graviton node if none exists.
+# Usage: kubectl apply -f examples/graviton-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graviton-demo
+  labels:
+    app: graviton-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: graviton-demo
+  template:
+    metadata:
+      labels:
+        app: graviton-demo
+    spec:
+      nodeSelector:
+        kubernetes.io/arch: arm64
+      containers:
+        - name: nginx
+          image: public.ecr.aws/nginx/nginx:latest
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+          ports:
+            - containerPort: 80
