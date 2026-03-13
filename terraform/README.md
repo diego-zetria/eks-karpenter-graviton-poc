@@ -5,50 +5,54 @@ Terraform code that deploys a production-ready Amazon EKS cluster with [Karpente
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                         VPC (10.0.0.0/16)                   │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  Public Sub   │  │  Public Sub   │  │  Public Sub   │    │
-│  │  AZ-a         │  │  AZ-b         │  │  AZ-c         │    │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘      │
-│         │   NAT GW        │                  │              │
-│  ┌──────┴───────┐  ┌──────┴───────┐  ┌──────┴───────┐      │
-│  │  Private Sub  │  │  Private Sub  │  │  Private Sub  │    │
-│  │  AZ-a         │  │  AZ-b         │  │  AZ-c         │    │
-│  │               │  │               │  │               │    │
-│  │  ┌─────────┐  │  │  ┌─────────┐  │  │               │    │
-│  │  │Karpenter│  │  │  │Karpenter│  │  │               │    │
-│  │  │System   │  │  │  │System   │  │  │               │    │
-│  │  │(Graviton)│ │  │  │(Graviton)│ │  │               │    │
-│  │  │On-Demand│  │  │  │On-Demand│  │  │               │    │
-│  │  └─────────┘  │  │  └─────────┘  │  │               │    │
-│  │               │  │               │  │               │    │
-│  │  ┌─────────┐  │  │  ┌─────────┐  │  │  ┌─────────┐  │   │
-│  │  │ Spot    │  │  │  │ Spot    │  │  │  │ Spot    │  │   │
-│  │  │ x86/arm │  │  │  │ x86/arm │  │  │  │ x86/arm │  │   │
-│  │  │Karpenter│  │  │  │Karpenter│  │  │  │Karpenter│  │   │
-│  │  │ Managed │  │  │  │ Managed │  │  │  │ Managed │  │   │
-│  │  └─────────┘  │  │  └─────────┘  │  │  └─────────┘  │   │
-│  └──────────────┘  └──────────────┘  └──────────────┘      │
-│                                                             │
-│                    ┌──────────────┐                          │
-│                    │  EKS Control │                          │
-│                    │    Plane     │                          │
-│                    └──────────────┘                          │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                         VPC (10.0.0.0/16)                    │
+│                                                              │
+│  ┌─── Public Subnets ─── NACL: HTTP/S in, deny→DB ────────┐│
+│  │  AZ-a           AZ-b           AZ-c                     ││
+│  │  ┌─────┐        ┌─────┐                                 ││
+│  │  │ NAT │        │     │                                  ││
+│  │  │ GW  │        │     │                                  ││
+│  │  └─────┘        └─────┘                                  ││
+│  └──────────────────┬───────────────────────────────────────┘│
+│                     │ ✓ allowed                              │
+│  ┌─── Private Subnets (Compute) ── NACL: VPC + NAT ───────┐│
+│  │  AZ-a           AZ-b           AZ-c                     ││
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐            ││
+│  │  │ System    │  │ System    │  │ Karpenter │            ││
+│  │  │ (Graviton)│  │ (Graviton)│  │ Spot      │            ││
+│  │  │ On-Demand │  │ On-Demand │  │ x86/arm   │            ││
+│  │  │ Karpenter │  │           │  │           │            ││
+│  │  └───────────┘  └───────────┘  └───────────┘            ││
+│  └──────────────────┬───────────────────────────────────────┘│
+│                     │ ✓ 5432/6379 only                       │
+│  ┌─── Secure Subnets (Data) ── NACL: private only ────────┐│
+│  │  AZ-a           AZ-b           AZ-c                     ││
+│  │  ┌───────────┐  ┌───────────┐  ┌───────────┐            ││
+│  │  │ Aurora    │  │ Aurora    │  │ Redis     │            ││
+│  │  │ (future)  │  │ (future)  │  │ (future)  │            ││
+│  │  └───────────┘  └───────────┘  └───────────┘            ││
+│  └──────────────────────────────────────────────────────────┘│
+│  ✗ Public → Secure: BLOCKED by NACL                          │
+│                                                              │
+│  ┌──────────────┐                                            │
+│  │  EKS Control │                                            │
+│  │    Plane     │                                            │
+│  └──────────────┘                                            │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ## What Gets Deployed
 
 | Resource | Description |
 |----------|-------------|
-| **VPC** | 3 AZs, public + private subnets, single NAT Gateway |
+| **VPC** | 3 AZs, public + private + secure (database) subnets, single NAT Gateway |
 | **EKS Cluster** | Kubernetes 1.35, managed control plane |
 | **System Node Group** | Graviton `m7g.medium` (On-Demand) — runs Karpenter controller |
 | **Karpenter** | v1.9.0 via Helm, Pod Identity auth, SQS interruption queue |
 | **NodePool** | x86 + ARM64, Spot + On-Demand, 6th gen+ instances (c/m/r families) |
 | **EC2NodeClass** | Amazon Linux 2023 AMI, auto-discovers subnets and security groups |
+| **Network ACLs** | Three-tier NACLs — secure subnets only accept 5432/6379 from private; public blocked from data tier |
 
 ## Prerequisites
 
@@ -168,4 +172,6 @@ vpc_cidr           = "10.1.0.0/16"
 
 4. **AL2023 AMI** — Amazon Linux 2023 provides the latest security patches and supports both x86 and ARM64.
 
-5. **Local state** — For POC simplicity. Production would use S3 + DynamoDB backend.
+5. **Three-tier NACLs (defense-in-depth)** — Database subnets have dedicated NACLs that only allow PostgreSQL (5432) and Redis (6379) from private compute subnets. Public subnets have explicit DENY rules to database CIDRs. This enforces network segmentation at L4, complementing security groups (which operate at instance level).
+
+6. **Local state** — For POC simplicity. Production would use S3 + DynamoDB backend.

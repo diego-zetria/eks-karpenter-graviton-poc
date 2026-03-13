@@ -55,11 +55,11 @@ with Diagram(
     # --- VPC ---
     with Cluster("VPC 10.0.0.0/16"):
 
-        with Cluster("Public Subnets (3 AZs)"):
+        with Cluster("Public Subnets (3 AZs) — NACL: HTTP/S, deny→DB"):
             alb = ElasticLoadBalancing("Application\nLoad Balancer")
             nat = NATGateway("NAT Gateway")
 
-        with Cluster("Private Subnets — Compute (3 AZs)"):
+        with Cluster("Private Subnets — Compute (3 AZs) — NACL: VPC + NAT"):
 
             # EKS control plane — managed by AWS, separate from worker nodes
             eks = EKS("EKS Control Plane\n(Managed by AWS)")
@@ -71,7 +71,7 @@ with Diagram(
             with Cluster("App Nodes — Spot + On-Demand (Karpenter)"):
                 flask_pods = Deploy("Flask API\nPods (HPA)")
 
-        with Cluster("Private Subnets — Data (3 AZs)"):
+        with Cluster("Secure Subnets — Data (3 AZs) — NACL: 5432/6379 from private only"):
             aurora_w = Aurora("Aurora PG\nWriter")
             aurora_r = Aurora("Aurora PG\nReader (Replica)")
             redis = ElasticacheForRedis("ElastiCache\nRedis")
@@ -102,10 +102,10 @@ with Diagram(
     # WAF also protects ALB (association)
     waf - Edge(style="dotted", color="firebrick", label="protects") - alb
 
-    # Flask → Data tier
-    flask_pods >> Edge(label="queries", color="mediumpurple") >> aurora_w
+    # Flask → Data tier (through NACL-controlled boundary)
+    flask_pods >> Edge(label="5432", color="mediumpurple") >> aurora_w
     flask_pods >> Edge(label="read replicas", style="dashed", color="mediumpurple") >> aurora_r
-    flask_pods >> Edge(label="cache / sessions", style="dashed", color="red") >> redis
+    flask_pods >> Edge(label="6379", style="dashed", color="red") >> redis
 
     # EKS → system pods (control, not traffic)
     eks >> Edge(style="dotted", color="gray") >> karpenter

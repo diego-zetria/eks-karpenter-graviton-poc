@@ -59,6 +59,8 @@ This document presents the cloud architecture for Innovate Inc.'s web applicatio
   │  │  └───────┬───────┘     └──────────┘     └──────────┘           │  │
   │  └──────────┼──────────────────────────────────────────────────────┘  │
   │             │                                                          │
+  │             │                                                          │
+  │             │  NACL: allow from public subnets + ephemeral from internet│
   │             ▼                                                          │
   │  ┌─── Private Subnets (Compute) ───────────────────────────────────┐  │
   │  │                                                                  │  │
@@ -78,8 +80,10 @@ This document presents the cloud architecture for Innovate Inc.'s web applicatio
   │  │  └───────────┘     └───────────┘     └───────────┘             │  │
   │  └──────────────────────────┬───────────────────────────────────────┘  │
   │                             │                                          │
+  │                             │  NACL: allow ONLY 5432/6379 from private │
+  │                             │        deny all other (public blocked)   │
   │                             ▼                                          │
-  │  ┌─── Private Subnets (Data) ──────────────────────────────────────┐  │
+  │  ┌─── Secure Subnets (Data) — Dedicated NACLs ────────────────────┐  │
   │  │                                                                  │  │
   │  │  ┌────────────────┐     ┌────────────────┐     ┌─────────────┐  │  │
   │  │  │ Aurora PG      │     │ Aurora PG      │     │ ElastiCache │  │  │
@@ -132,29 +136,33 @@ This document presents the cloud architecture for Innovate Inc.'s web applicatio
 ```
 ┌─────────────────── VPC (10.0.0.0/16) ───────────────────┐
 │                                                           │
-│  ┌─── Public Subnets ──────────────────────────────────┐ │
-│  │  10.0.1.0/24 (AZ-a)  │  10.0.2.0/24 (AZ-b)  │ AZ-c│ │
-│  │  ┌─────┐  ┌─────┐    │  ┌─────┐               │     │ │
-│  │  │ NAT │  │ ALB │    │  │ NAT │               │     │ │
-│  │  │ GW  │  │     │    │  │ GW  │               │     │ │
-│  │  └─────┘  └─────┘    │  └─────┘               │     │ │
-│  └───────────────────────────────────────────────────┘  │
+│  ┌─── Public Subnets ──── NACL: HTTP/S in, deny→DB ──┐ │
+│  │  10.0.48.0/24 (AZ-a) │ 10.0.49.0/24 (AZ-b) │ AZ-c│ │
+│  │  ┌─────┐  ┌─────┐    │  ┌─────┐               │   │ │
+│  │  │ NAT │  │ ALB │    │  │ NAT │               │   │ │
+│  │  │ GW  │  │     │    │  │ GW  │               │   │ │
+│  │  └─────┘  └─────┘    │  └─────┘               │   │ │
+│  └────────────────┬──────────────────────────────────┘ │
+│                    │ ✓ allowed                           │
+│                    ▼                                     │
+│  ┌─── Private Subnets (Compute) ── NACL: VPC + NAT ──┐ │
+│  │  10.0.0.0/20 (AZ-a)  │ 10.0.16.0/20 (AZ-b) │ AZ-c│ │
+│  │  ┌──────────┐        │ ┌──────────┐          │    │ │
+│  │  │ EKS Nodes│        │ │ EKS Nodes│          │    │ │
+│  │  │ (Flask)  │        │ │ (Flask)  │          │    │ │
+│  │  └──────────┘        │ └──────────┘          │    │ │
+│  └────────────────┬──────────────────────────────────┘ │
+│                    │ ✓ 5432/6379 only                    │
+│                    ▼                                     │
+│  ┌─── Secure Subnets (Data) ── NACL: private only ───┐ │
+│  │  10.0.64.0/24 (AZ-a) │ 10.0.65.0/24 (AZ-b) │ AZ-c│ │
+│  │  ┌──────────┐        │ ┌──────────┐          │    │ │
+│  │  │ Aurora   │        │ │ Aurora   │          │    │ │
+│  │  │ Primary  │        │ │ Replica  │          │    │ │
+│  │  └──────────┘        │ └──────────┘          │    │ │
+│  └───────────────────────────────────────────────────┘ │
 │                                                           │
-│  ┌─── Private Subnets (Application) ──────────────────┐ │
-│  │  10.0.10.0/24 (AZ-a) │ 10.0.11.0/24 (AZ-b) │ AZ-c │ │
-│  │  ┌──────────┐        │ ┌──────────┐          │     │ │
-│  │  │ EKS Nodes│        │ │ EKS Nodes│          │     │ │
-│  │  │ (Flask)  │        │ │ (Flask)  │          │     │ │
-│  │  └──────────┘        │ └──────────┘          │     │ │
-│  └───────────────────────────────────────────────────┘  │
-│                                                           │
-│  ┌─── Private Subnets (Data) ─────────────────────────┐ │
-│  │  10.0.20.0/24 (AZ-a) │ 10.0.21.0/24 (AZ-b) │ AZ-c │ │
-│  │  ┌──────────┐        │ ┌──────────┐          │     │ │
-│  │  │ Aurora   │        │ │ Aurora   │          │     │ │
-│  │  │ Primary  │        │ │ Replica  │          │     │ │
-│  │  └──────────┘        │ └──────────┘          │     │ │
-│  └───────────────────────────────────────────────────┘  │
+│  ✗ Public → Secure: BLOCKED by NACL (explicit deny)      │
 └───────────────────────────────────────────────────────────┘
 ```
 
@@ -163,9 +171,10 @@ This document presents the cloud architecture for Innovate Inc.'s web applicatio
 | Layer | Control | Description |
 |-------|---------|-------------|
 | **Edge** | AWS WAF + Shield | OWASP Top 10 protection, DDoS mitigation, rate limiting |
+| **Subnet isolation** | Network ACLs (NACLs) | Three-tier enforcement: public → private → secure. Database subnets only accept 5432/6379 from private compute subnets; public subnets explicitly denied from reaching data tier |
 | **Ingress** | ALB + Security Groups | Only ports 80/443 from internet to ALB; ALB to EKS pods only |
 | **Pod-to-Pod** | Kubernetes Network Policies | Default deny all, explicit allow between Flask and database |
-| **Data tier** | Security Groups | Database accepts traffic only from EKS node security group |
+| **Data tier** | Security Groups + NACLs | Double enforcement — SGs allow only EKS node SG; NACLs allow only private subnet CIDRs on DB ports |
 | **Egress** | NAT Gateway | All outbound traffic through NAT; VPC Flow Logs for audit |
 | **Encryption** | TLS everywhere | ACM certificates on ALB; in-transit encryption to Aurora; KMS for data at rest |
 | **DNS** | Private Hosted Zones | Internal service discovery without public exposure |

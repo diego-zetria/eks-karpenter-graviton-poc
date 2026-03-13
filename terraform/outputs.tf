@@ -22,3 +22,8 @@ output "karpenter_node_iam_role_name" {
   description = "Karpenter node IAM role name"
   value       = module.karpenter.node_iam_role_name
 }
+
+output "database_subnet_group_name" {
+  description = "Name of the database subnet group (for RDS/ElastiCache)"
+  value       = module.vpc.database_subnet_group_name
+}

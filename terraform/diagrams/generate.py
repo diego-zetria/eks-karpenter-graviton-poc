@@ -9,6 +9,7 @@ from diagrams.aws.network import NATGateway
 from diagrams.aws.integration import SQS
 from diagrams.aws.security import IAMRole
 from diagrams.k8s.compute import Pod, Deploy
+from diagrams.aws.database import Aurora, ElasticacheForRedis
 
 graph_attr = {
     "fontsize": "22",
@@ -39,10 +40,10 @@ with Diagram(
             # EKS control plane — managed by AWS, not inside subnets
             eks = EKS("EKS Control Plane\n(Managed by AWS)")
 
-            with Cluster("Public Subnets (3 AZs)"):
+            with Cluster("Public Subnets (3 AZs) — NACL: HTTP/S, deny→DB"):
                 nat = NATGateway("NAT Gateway\n(Outbound traffic)")
 
-            with Cluster("Private Subnets (3 AZs)"):
+            with Cluster("Private Subnets (3 AZs) — NACL: VPC + NAT"):
 
                 with Cluster("System Node Group — Graviton m7g.medium · On-Demand"):
                     karpenter = Pod("Karpenter\nController")
@@ -57,6 +58,10 @@ with Diagram(
                         node_x86 = EC2("c6i / m6i / r6i")
                         deploy_x86 = Deploy("amd64 workloads")
 
+            with Cluster("Secure Subnets (3 AZs) — NACL: 5432/6379 from private only"):
+                aurora = Aurora("Aurora PG\n(DB Subnet Group)")
+                redis = ElasticacheForRedis("ElastiCache Redis\n(future)")
+
     # EKS manages system pods
     eks >> Edge(color="darkblue", style="bold") >> karpenter
     eks >> Edge(color="darkblue") >> coredns
@@ -68,6 +73,10 @@ with Diagram(
     # Nodes run workloads
     node_arm >> deploy_arm
     node_x86 >> deploy_x86
+
+    # Workloads access data tier (through NACL-controlled boundary)
+    deploy_arm >> Edge(label="5432", style="dashed", color="mediumpurple") >> aurora
+    deploy_x86 >> Edge(label="6379", style="dashed", color="red") >> redis
 
     # Karpenter uses account-level services
     karpenter - Edge(label="auth", style="dotted", color="forestgreen") - iam
