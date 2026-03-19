@@ -1,3 +1,9 @@
+![Terraform](https://img.shields.io/badge/Terraform-1.10+-623CE4?logo=terraform)
+![EKS](https://img.shields.io/badge/EKS-K8s_1.35-326CE5?logo=kubernetes)
+![Karpenter](https://img.shields.io/badge/Karpenter-v1.9.0-FF6F00)
+![AWS](https://img.shields.io/badge/AWS-Graviton_+_Spot-FF9900?logo=amazonwebservices)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
 # OpsFleet Tech Assignment
 
 Technical assessment consisting of two deliverables: a production-ready EKS cluster with Karpenter (Terraform) and a full cloud architecture design for a Flask/React application.
