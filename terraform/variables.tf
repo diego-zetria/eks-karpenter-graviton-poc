@@ -7,7 +7,7 @@ variable "region" {
 variable "cluster_name" {
   description = "Name of the EKS cluster"
   type        = string
-  default     = "opsfleet-eks"
+  default     = "eks-karpenter-poc"
 }
 
 variable "kubernetes_version" {
@@ -26,7 +26,7 @@ variable "tags" {
   description = "Common tags for all resources"
   type        = map(string)
   default = {
-    Project   = "opsfleet-tech-assignment"
+    Project   = "eks-karpenter-graviton-poc"
     ManagedBy = "terraform"
   }
 }

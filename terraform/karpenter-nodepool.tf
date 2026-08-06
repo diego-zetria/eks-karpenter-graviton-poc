@@ -15,7 +15,7 @@ resource "kubectl_manifest" "karpenter_node_class" {
         - tags:
             karpenter.sh/discovery: ${var.cluster_name}
       tags:
-        Project: opsfleet-tech-assignment
+        Project: eks-karpenter-graviton-poc
         ManagedBy: terraform
         karpenter.sh/discovery: ${var.cluster_name}
   YAML

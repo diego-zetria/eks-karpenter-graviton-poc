@@ -4,7 +4,7 @@
 ![AWS](https://img.shields.io/badge/AWS-Graviton_+_Spot-FF9900?logo=amazonwebservices)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
-# OpsFleet Tech Assignment
+# EKS with Karpenter, Graviton & Spot + Cloud Architecture Design
 
 Technical assessment consisting of two deliverables: a production-ready EKS cluster with Karpenter (Terraform) and a full cloud architecture design for a Flask/React application.
 

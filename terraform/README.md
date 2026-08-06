@@ -81,7 +81,7 @@ terraform apply
 
 ```bash
 # Update kubeconfig (command also shown in terraform output)
-aws eks update-kubeconfig --region us-east-1 --name opsfleet-eks
+aws eks update-kubeconfig --region us-east-1 --name eks-karpenter-poc
 ```
 
 ### Verify Karpenter is Running
